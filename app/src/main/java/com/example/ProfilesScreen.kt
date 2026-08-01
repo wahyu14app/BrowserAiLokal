@@ -236,15 +236,31 @@ fun AddProfileDialog(
         title = { Text("Tambah Profil Robot AI Baru") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    onClick = {
-                        name = "Management Produk"
-                        urlMatch = "*"
-                        instructions = "Kamu adalah seorang manager yang bekerja sebagai pengelola produk."
-                    },
-                    modifier = Modifier.fillMaxWidth()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Gunakan Template 'Management Produk'")
+                    OutlinedButton(
+                        onClick = {
+                            name = "Penulis Quotes Facebook"
+                            urlMatch = "facebook.com"
+                            instructions = "Kamu adalah seorang penulis quotes di Facebook. Setiap kali halaman dimuat, kamu akan berpikir dan membuat postingan quote inspiratif baru secara terus menerus."
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("✍️ Template FB Quotes", fontSize = 11.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            name = "Management Produk"
+                            urlMatch = "*"
+                            instructions = "Kamu adalah seorang manager yang bekerja sebagai pengelola produk."
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("🛒 Management Produk", fontSize = 11.sp)
+                    }
                 }
 
                 OutlinedTextField(

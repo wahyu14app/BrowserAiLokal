@@ -59,6 +59,10 @@ fun BrowserScreen(viewModel: BrowserViewModel = viewModel(), navController: NavC
     val canGoBack by viewModel.canGoBack.collectAsStateWithLifecycle()
     val canGoForward by viewModel.canGoForward.collectAsStateWithLifecycle()
     val isAgentRunning by viewModel.isAgentRunning.collectAsStateWithLifecycle()
+    val isInteractiveAiActive by viewModel.isInteractiveAiActive.collectAsStateWithLifecycle()
+    val isAutonomousLoopRunning by viewModel.isAutonomousLoopRunning.collectAsStateWithLifecycle()
+    val currentAiThought by viewModel.currentAiThought.collectAsStateWithLifecycle()
+    val actionLoopCount by viewModel.actionLoopCount.collectAsStateWithLifecycle()
 
     var urlInput by remember { mutableStateOf(currentUrl) }
     var showAiSheet by remember { mutableStateOf(false) }
@@ -135,6 +139,70 @@ fun BrowserScreen(viewModel: BrowserViewModel = viewModel(), navController: NavC
             }
         }
 
+        // Active Autonomous HUD Banner
+        if (isInteractiveAiActive) {
+            Surface(
+                color = if (isAutonomousLoopRunning) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (isAutonomousLoopRunning) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.SmartToy,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isAutonomousLoopRunning) "🧠 AI Interaktif Berjalan (#$actionLoopCount)" else "⚡ Fitur AI Interaktif Siap",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+
+                    if (isAutonomousLoopRunning) {
+                        Button(
+                            onClick = { viewModel.stopAutonomousLoop() },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                            modifier = Modifier.height(30.dp)
+                        ) {
+                            Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("HENTIKAN AI", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = { viewModel.startAutonomousLoop() },
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                            modifier = Modifier.height(30.dp)
+                        ) {
+                            Text("Mulai AI Interaktif", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
         // Main Browser Viewport
         Box(
             modifier = Modifier
@@ -146,6 +214,40 @@ fun BrowserScreen(viewModel: BrowserViewModel = viewModel(), navController: NavC
                 modifier = Modifier.fillMaxSize(),
                 viewModel = viewModel
             )
+
+            // Floating Thought Overlay Badge on top of WebView
+            if (isAutonomousLoopRunning && !currentAiThought.isNullOrBlank()) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                    tonalElevation = 6.dp,
+                    shadowElevation = 4.dp,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .fillMaxWidth(0.92f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = currentAiThought ?: "",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            onClick = { viewModel.stopAutonomousLoop() },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = "Tutup", tint = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
+            }
             
             // Floating Action Button overlay for AI history
             FloatingActionButton(
@@ -158,7 +260,7 @@ fun BrowserScreen(viewModel: BrowserViewModel = viewModel(), navController: NavC
                     .testTag("ai_fab"),
                 shape = CircleShape
             ) {
-                if (isAgentRunning) {
+                if (isAgentRunning || isAutonomousLoopRunning) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
                         color = MaterialTheme.colorScheme.onPrimary,
@@ -424,6 +526,11 @@ fun WebViewContainer(
                         super.onPageStarted(view, url, favicon)
                         url?.let { viewModel.updateUrl(it) }
                     }
+
+                    override fun onPageFinished(view: WebView?, url: String?) {
+                        super.onPageFinished(view, url)
+                        url?.let { viewModel.onPageFinished(it) }
+                    }
                     
                     override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
                         super.doUpdateVisitedHistory(view, url, isReload)
@@ -449,6 +556,9 @@ fun AiAssistantSheetContent(viewModel: BrowserViewModel) {
     val isRunning by viewModel.isAgentRunning.collectAsStateWithLifecycle()
     val currentUrl by viewModel.currentUrl.collectAsStateWithLifecycle()
     val profiles by viewModel.profiles.collectAsStateWithLifecycle()
+    val isAutoLoopEnabled by viewModel.isAutoLoopEnabled.collectAsStateWithLifecycle()
+    val isInteractiveAiActive by viewModel.isInteractiveAiActive.collectAsStateWithLifecycle()
+    val isAutonomousLoopRunning by viewModel.isAutonomousLoopRunning.collectAsStateWithLifecycle()
     
     val activeProfile = profiles.find { 
         it.urlMatch != "*" && currentUrl.contains(it.urlMatch, ignoreCase = true) 
@@ -464,43 +574,81 @@ fun AiAssistantSheetContent(viewModel: BrowserViewModel) {
             .fillMaxHeight(0.9f)
             .padding(top = 8.dp)
     ) {
-        // Active Profile Role Banner
-        if (activeProfile != null) {
+        // Active Profile Role Banner & Interactive AI Switch
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+        ) {
+            if (activeProfile != null) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SmartToy,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Profil Robot: ${activeProfile.name}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = "Instruksi: ${activeProfile.customInstructions}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            // Fitur AI Interaktif (Otonom) Toggle Card
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                modifier = Modifier.fillMaxWidth(),
+                color = if (isInteractiveAiActive) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.SmartToy,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Profil Robot: ${activeProfile.name}",
-                            style = MaterialTheme.typography.titleMedium,
+                            text = "🧠 Fitur AI Interaktif (Pemikiran Otonom)",
+                            style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                         Text(
-                            text = "Instruksi: ${activeProfile.customInstructions}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                            text = if (isInteractiveAiActive) "AI mendapatkan hak penuh untuk berpikir & membuat postingan/aksi secara terus menerus." else "Fitur AI Interaktif dinonaktifkan.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
                         )
                     }
+                    Switch(
+                        checked = isInteractiveAiActive,
+                        onCheckedChange = { viewModel.setInteractiveAiActive(it) }
+                    )
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
         }
+        Spacer(modifier = Modifier.height(8.dp))
 
         TabRow(selectedTabIndex = selectedTabIndex) {
             tabs.forEachIndexed { index, title ->
@@ -580,12 +728,23 @@ fun AiAssistantSheetContent(viewModel: BrowserViewModel) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     AssistChip(
-                        onClick = { viewModel.submitAgentTask("kelola produk nonaktif") },
-                        label = { Text("⚡ Cek Nonaktif", fontSize = 12.sp) }
+                        onClick = { viewModel.webView?.loadUrl("https://www.facebook.com") },
+                        label = { Text("✍️ Buka Facebook", fontSize = 12.sp) }
                     )
+                    if (isAutonomousLoopRunning) {
+                        AssistChip(
+                            onClick = { viewModel.stopAutonomousLoop() },
+                            label = { Text("🛑 Hentikan AI", fontSize = 12.sp, color = MaterialTheme.colorScheme.error) }
+                        )
+                    } else {
+                        AssistChip(
+                            onClick = { viewModel.startAutonomousLoop() },
+                            label = { Text("🧠 Mulai Loop AI", fontSize = 12.sp) }
+                        )
+                    }
                     AssistChip(
-                        onClick = { viewModel.submitAgentTask("kriteria a") },
-                        label = { Text("⚡ Process Kriteria A", fontSize = 12.sp) }
+                        onClick = { viewModel.submitAgentTask("klik tombol login") },
+                        label = { Text("⚡ Klik Login", fontSize = 12.sp) }
                     )
                 }
 

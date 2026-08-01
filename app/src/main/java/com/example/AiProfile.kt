@@ -13,5 +13,7 @@ data class AiProfile(
     val name: String,
     val urlMatch: String,
     val customInstructions: String,
-    val actions: List<AiAction> = emptyList()
+    val actions: List<AiAction> = emptyList(),
+    val isInteractiveMode: Boolean = true,
+    val autoLoopIntervalSeconds: Int = 5
 )
