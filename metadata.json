@@ -1,0 +1,6 @@
+{
+  "name": "Browser AI Lokal",
+  "description": "Aplikasi browser yang dilengkapi dengan AI untuk automasi tugas, terinspirasi dari Edge Gallery.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
