@@ -43,7 +43,18 @@ class BrowserViewModel : ViewModel() {
     private val _isAgentRunning = MutableStateFlow(false)
     val isAgentRunning = _isAgentRunning.asStateFlow()
 
+    private val _profiles = MutableStateFlow<List<AiProfile>>(emptyList())
+    val profiles = _profiles.asStateFlow()
+
     var webView: WebView? = null
+
+    fun addProfile(profile: AiProfile) {
+        _profiles.update { it + profile }
+    }
+
+    fun removeProfile(profileId: String) {
+        _profiles.update { list -> list.filter { it.id != profileId } }
+    }
 
     fun updateUrl(url: String) {
         _currentUrl.value = url
@@ -177,10 +188,16 @@ class BrowserViewModel : ViewModel() {
             return@withContext null
         }
 
+        val currentUrlValue = _currentUrl.value
+        val matchedProfile = _profiles.value.find { profile ->
+            currentUrlValue.contains(profile.urlMatch, ignoreCase = true)
+        }
+        val customInstructions = matchedProfile?.customInstructions ?: ""
+
         val prompt = """
             Anda adalah Agent Browser AI yang bertugas menjalankan perintah pengguna.
             Tugas: "$task"
-            
+            ${if (customInstructions.isNotBlank()) "\nInstruksi Khusus (Wajib Diikuti): $customInstructions\n" else ""}
             Berikut adalah cuplikan HTML dari halaman saat ini:
             ```html
             $html

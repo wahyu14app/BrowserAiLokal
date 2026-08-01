@@ -34,6 +34,9 @@ class MainActivity : ComponentActivity() {
                 composable("ai_management") {
                     AiManagementScreen(navController = navController)
                 }
+                composable("profiles") {
+                    ProfilesScreen(navController = navController)
+                }
                 composable("settings") {
                     SettingsScreen(navController = navController)
                 }

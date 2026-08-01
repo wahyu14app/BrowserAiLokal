@@ -147,33 +147,46 @@ fun AiManagementScreen(navController: NavController) {
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (models.isEmpty()) {
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+            ) {
                 Text(
-                    text = "Tidak ada model AI lokal. Ketuk tombol + untuk mengimpor file.",
-                    modifier = Modifier.align(Alignment.Center).padding(16.dp),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "Format file model yang didukung: .literlm, .gguf, .bin, dll. Model yang diimpor akan diproses secara lokal.",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
-            } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(models) { file ->
-                        ListItem(
-                            headlineContent = { Text(file.name) },
-                            supportingContent = { Text("Ukuran: ${file.length() / (1024 * 1024)} MB") },
-                            trailingContent = {
-                                IconButton(onClick = { deleteModel(file) }) {
-                                    Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error)
+            }
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                if (models.isEmpty()) {
+                    Text(
+                        text = "Tidak ada model AI lokal. Ketuk tombol + untuk mengimpor file.",
+                        modifier = Modifier.align(Alignment.Center).padding(16.dp),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(models) { file ->
+                            ListItem(
+                                headlineContent = { Text(file.name) },
+                                supportingContent = { Text("Ukuran: ${file.length() / (1024 * 1024)} MB") },
+                                trailingContent = {
+                                    IconButton(onClick = { deleteModel(file) }) {
+                                        Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error)
+                                    }
                                 }
-                            }
-                        )
-                        Divider()
+                            )
+                            Divider()
+                        }
                     }
                 }
-            }
-            
-            if (isImporting) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                
+                if (isImporting) {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
             }
         }
     }

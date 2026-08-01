@@ -341,6 +341,13 @@ fun BrowserScreen(viewModel: BrowserViewModel = viewModel(), navController: NavC
                             onDismissRequest = { showMenu = false }
                         ) {
                             DropdownMenuItem(
+                                text = { Text("Profil AI Web") },
+                                onClick = {
+                                    showMenu = false
+                                    navController.navigate("profiles")
+                                }
+                            )
+                            DropdownMenuItem(
                                 text = { Text("Alat") },
                                 onClick = {
                                     showMenu = false
@@ -462,8 +469,8 @@ fun AiAssistantSheetContent(viewModel: BrowserViewModel) {
         ) {
             items(chatHistory) { msg ->
                 val (alignment, bgColor, textColor) = when (msg.role) {
-                    "user" -> Triple(Alignment.CenterEnd, MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
-                    "ai" -> Triple(Alignment.CenterStart, MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
+                    "user" -> Triple(Alignment.CenterEnd, MaterialTheme.colorScheme.primaryContainer, Color.Black)
+                    "ai" -> Triple(Alignment.CenterStart, MaterialTheme.colorScheme.secondaryContainer, Color.Black)
                     else -> Triple(Alignment.Center, Color.Transparent, MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 
