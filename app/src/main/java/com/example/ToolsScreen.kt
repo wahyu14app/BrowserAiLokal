@@ -21,7 +21,7 @@ fun ToolsScreen(navController: NavController) {
                 title = { Text("Alat (Tools)") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Kembali")
                     }
                 }
             )
@@ -40,7 +40,7 @@ fun ToolsScreen(navController: NavController) {
                 )
             }
             item {
-                Divider()
+                HorizontalDivider()
                 ListItem(
                     headlineContent = { Text("Ambil Tangkapan Layar") },
                     supportingContent = { Text("Simpan seluruh halaman sebagai gambar.") },
@@ -48,7 +48,7 @@ fun ToolsScreen(navController: NavController) {
                 )
             }
             item {
-                Divider()
+                HorizontalDivider()
                 ListItem(
                     headlineContent = { Text("Mode Desktop") },
                     supportingContent = { Text("Muat ulang halaman sebagai peramban desktop.") },
@@ -58,9 +58,9 @@ fun ToolsScreen(navController: NavController) {
                 )
             }
             item {
-                Divider()
+                HorizontalDivider()
                 ListItem(
-                    headlineContent = { Text("Baca Mode") },
+                    headlineContent = { Text("Mode Baca") },
                     supportingContent = { Text("Hilangkan gangguan dan fokus pada teks artikel.") },
                     modifier = Modifier.clickable { /* action */ }
                 )

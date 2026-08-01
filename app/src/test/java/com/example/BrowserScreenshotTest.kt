@@ -2,6 +2,7 @@ package com.example
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.navigation.compose.rememberNavController
 import com.example.ui.theme.MyApplicationTheme
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -21,7 +22,7 @@ class BrowserScreenshotTest {
 
   @Test
   fun browser_screenshot() {
-    composeTestRule.setContent { MyApplicationTheme { BrowserScreen() } }
+    composeTestRule.setContent { MyApplicationTheme { BrowserScreen(navController = rememberNavController()) } }
 
     composeTestRule.onRoot().captureRoboImage(filePath = "src/test/screenshots/browser.png")
   }

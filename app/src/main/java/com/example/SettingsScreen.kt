@@ -25,7 +25,7 @@ fun SettingsScreen(navController: NavController) {
                 title = { Text("Pengaturan Browser") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Kembali")
                     }
                 }
             )
@@ -63,7 +63,7 @@ fun SettingsScreen(navController: NavController) {
                 )
             }
             item {
-                Divider(modifier = Modifier.padding(vertical = 8.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 Text(
                     text = "Agen AI",
                     style = MaterialTheme.typography.labelMedium,
@@ -88,7 +88,7 @@ fun SettingsScreen(navController: NavController) {
                 )
             }
             item {
-                Divider(modifier = Modifier.padding(vertical = 8.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 ListItem(
                     headlineContent = { Text("Hapus Data Browsing") },
                     supportingContent = { Text("Hapus cache, cookie, dan riwayat penelusuran.") },

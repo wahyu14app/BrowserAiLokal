@@ -28,9 +28,11 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AiManagementScreen(navController: NavController) {
+fun AiManagementScreen(viewModel: BrowserViewModel, navController: NavController) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     
@@ -39,6 +41,8 @@ fun AiManagementScreen(navController: NavController) {
     var isImporting by remember { mutableStateOf(false) }
     var snackbarMessage by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
+    
+    val isLocalAiActive by viewModel.isLocalAiActive.collectAsStateWithLifecycle()
 
     fun refreshModels() {
         if (baseDir.exists()) {
@@ -135,7 +139,7 @@ fun AiManagementScreen(navController: NavController) {
                 title = { Text("Manajemen AI") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Kembali")
                     }
                 }
             )
@@ -148,6 +152,22 @@ fun AiManagementScreen(navController: NavController) {
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Aktifkan AI Lokal",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Switch(
+                    checked = isLocalAiActive,
+                    onCheckedChange = { viewModel.setLocalAiActive(it) }
+                )
+            }
             Card(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
@@ -175,11 +195,11 @@ fun AiManagementScreen(navController: NavController) {
                                 supportingContent = { Text("Ukuran: ${file.length() / (1024 * 1024)} MB") },
                                 trailingContent = {
                                     IconButton(onClick = { deleteModel(file) }) {
-                                        Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error)
+                                        Icon(Icons.Default.Delete, "Hapus", tint = MaterialTheme.colorScheme.error)
                                     }
                                 }
                             )
-                            Divider()
+                            HorizontalDivider()
                         }
                     }
                 }

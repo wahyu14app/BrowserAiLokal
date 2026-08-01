@@ -43,10 +43,40 @@ class BrowserViewModel : ViewModel() {
     private val _isAgentRunning = MutableStateFlow(false)
     val isAgentRunning = _isAgentRunning.asStateFlow()
 
+    private val _isLocalAiActive = MutableStateFlow(false)
+    val isLocalAiActive = _isLocalAiActive.asStateFlow()
+
     private val _profiles = MutableStateFlow<List<AiProfile>>(emptyList())
     val profiles = _profiles.asStateFlow()
 
     var webView: WebView? = null
+
+    init {
+        _profiles.value = listOf(
+            AiProfile(
+                id = "default_management_produk",
+                name = "Management Produk",
+                urlMatch = "*",
+                customInstructions = "Kamu adalah seorang manager yang bekerja sebagai pengelola produk.",
+                actions = listOf(
+                    AiAction(
+                        id = "act_1",
+                        condition = "nonaktif",
+                        action = "alert('Mengaktifkan produk dengan status nonaktif!'); document.querySelectorAll('button').forEach(b => { if(b.innerText.toLowerCase().includes('aktifkan')) b.click(); });"
+                    ),
+                    AiAction(
+                        id = "act_2",
+                        condition = "kriteria a",
+                        action = "alert('Proses produk dengan Kriteria A selesai!');"
+                    )
+                )
+            )
+        )
+    }
+
+    fun setLocalAiActive(active: Boolean) {
+        _isLocalAiActive.value = active
+    }
 
     fun addProfile(profile: AiProfile) {
         _profiles.update { it + profile }
@@ -54,6 +84,26 @@ class BrowserViewModel : ViewModel() {
 
     fun removeProfile(profileId: String) {
         _profiles.update { list -> list.filter { it.id != profileId } }
+    }
+
+    fun addActionToProfile(profileId: String, condition: String, action: String) {
+        _profiles.update { list ->
+            list.map {
+                if (it.id == profileId) {
+                    it.copy(actions = it.actions + AiAction(condition = condition, action = action))
+                } else it
+            }
+        }
+    }
+
+    fun removeActionFromProfile(profileId: String, actionId: String) {
+        _profiles.update { list ->
+            list.map {
+                if (it.id == profileId) {
+                    it.copy(actions = it.actions.filter { action -> action.id != actionId })
+                } else it
+            }
+        }
     }
 
     fun updateUrl(url: String) {
@@ -105,12 +155,6 @@ class BrowserViewModel : ViewModel() {
                 
                 _chatHistory.update { it + ChatMessage("ai", agentResponse.thought) }
                 
-                if (agentResponse.isDone) {
-                    _chatHistory.update { it + ChatMessage("system", "Tugas selesai!") }
-                    isDone = true
-                    break
-                }
-                
                 if (agentResponse.action == "execute_js" && !agentResponse.javascript.isNullOrEmpty()) {
                     _chatHistory.update { it + ChatMessage("system", "Mengeksekusi JavaScript: ${agentResponse.javascript}") }
                     executeJavascript(agentResponse.javascript)
@@ -122,8 +166,13 @@ class BrowserViewModel : ViewModel() {
                         webView?.loadUrl(agentResponse.url)
                     }
                     delay(3000)
-                } else {
-                    _chatHistory.update { it + ChatMessage("system", "Aksi tidak dikenali atau kosong. Menghentikan tugas.") }
+                } else if (agentResponse.action != "done") {
+                    _chatHistory.update { it + ChatMessage("system", "Aksi tidak dikenali. Melanjutkan tugas.") }
+                }
+
+                if (agentResponse.isDone) {
+                    _chatHistory.update { it + ChatMessage("system", "Tugas selesai!") }
+                    isDone = true
                     break
                 }
             }
@@ -182,14 +231,64 @@ class BrowserViewModel : ViewModel() {
     )
 
     private suspend fun callLocalAgent(task: String, html: String): AgentDecision? = withContext(Dispatchers.IO) {
-        val isLocalAiActive = false // TODO: Integrasi dengan model AI lokal (misal: MediaPipe LLM atau server lokal)
-
-        if (!isLocalAiActive) {
-            _chatHistory.update { it + ChatMessage("system", "AI belum di aktifkan. Harap bangun atau jalankan model AI lokal.") }
+        if (!_isLocalAiActive.value) {
+            _chatHistory.update { it + ChatMessage("system", "AI belum diaktifkan. Harap aktifkan di Manajemen AI terlebih dahulu.") }
             return@withContext null
         }
 
-        // Placeholder untuk respons AI lokal di masa mendatang
-        return@withContext null
+        // Cari profil aktif berdasarkan URL saat ini atau wildcard '*'
+        val current = _currentUrl.value
+        val activeProfile = _profiles.value.find { 
+            it.urlMatch != "*" && current.contains(it.urlMatch, ignoreCase = true) 
+        } ?: _profiles.value.find { it.urlMatch == "*" } ?: _profiles.value.firstOrNull()
+
+        if (activeProfile != null) {
+            _chatHistory.update { 
+                it + ChatMessage("system", "🤖 Role Robot: [${activeProfile.name}] - \"${activeProfile.customInstructions}\"") 
+            }
+
+            // Cari aksi yang sesuai dengan prompt atau konten HTML halaman
+            val matchedAction = activeProfile.actions.find { action ->
+                task.contains(action.condition, ignoreCase = true) || 
+                html.contains(action.condition, ignoreCase = true)
+            }
+
+            if (matchedAction != null) {
+                _chatHistory.update { 
+                    it + ChatMessage("system", "✅ Kondisi Terpenuhi: '${matchedAction.condition}'. Menjalankan aksi terprogram.") 
+                }
+                
+                val isNav = matchedAction.action.startsWith("http://") || matchedAction.action.startsWith("https://") || matchedAction.action.startsWith("www.")
+                val isJs = matchedAction.action.startsWith("document.") || matchedAction.action.startsWith("window.") || matchedAction.action.startsWith("alert(") || matchedAction.action.startsWith("console.")
+                
+                return@withContext AgentDecision(
+                    thought = "Menjalankan instruksi '${matchedAction.condition}': ${matchedAction.action}",
+                    action = if (isNav) "navigate" else "execute_js",
+                    javascript = if (!isNav) matchedAction.action else null,
+                    url = if (isNav) matchedAction.action else null,
+                    isDone = true
+                )
+            } else {
+                _chatHistory.update { 
+                    it + ChatMessage("system", "🛑 [Proteksi AI]: Berdasarkan instruksi '${activeProfile.customInstructions}', tidak ditemukan kriteria atau aksi yang cocok pada halaman ini. AI berhenti bertindak.") 
+                }
+                return@withContext AgentDecision(
+                    thought = "Halaman tidak memiliki kriteria yang cocok. Robot AI berhenti sesuai aturan.",
+                    action = "done",
+                    javascript = null,
+                    url = null,
+                    isDone = true
+                )
+            }
+        }
+
+        _chatHistory.update { it + ChatMessage("system", "Tidak ada profil robot yang terdaftar. Menunggu instruksi atau profil baru.") }
+        return@withContext AgentDecision(
+            thought = "Saya tidak memiliki profil instruksi robot.",
+            action = "done",
+            javascript = null,
+            url = null,
+            isDone = true
+        )
     }
 }

@@ -34,7 +34,7 @@ fun InstructionsScreen(navController: NavController) {
         ) {
             item {
                 Text(
-                    text = "Cara Menggunakan Browser AI",
+                    text = "Cara Menggunakan Browser Robot AI",
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -42,31 +42,31 @@ fun InstructionsScreen(navController: NavController) {
             item {
                 InstructionItem(
                     title = "1. Navigasi Dasar",
-                    description = "Gunakan bilah URL di bagian atas untuk memasukkan alamat situs web. Tekan tombol Go pada keyboard untuk memuat halaman. Gunakan tombol navigasi di bawah untuk kembali, maju, atau kembali ke beranda."
+                    description = "Gunakan bilah URL di bagian atas untuk memasukkan alamat situs web. Tekan enter pada keyboard untuk memuat halaman. Gunakan tombol navigasi di bawah untuk kembali, maju, atau kembali ke beranda."
                 )
             }
             item {
                 InstructionItem(
-                    title = "2. Memerintah Agen AI",
-                    description = "Di bagian bawah layar, terdapat kolom teks khusus untuk asisten AI. Masukkan instruksi Anda (misal: \"Cari artikel tentang AI\", \"Klik tombol login\", \"Scroll ke bawah\") lalu kirim. AI akan menganalisis halaman dan mengambil tindakan yang sesuai."
+                    title = "2. Manajemen Profil Robot AI",
+                    description = "Buka menu 'Profil AI Web' untuk membuat persona robot. Anda dapat menentukan nama profil, URL target spesifik (atau '*' untuk semua web), dan instruksi tugas robot (misal: 'Kamu adalah pengelola produk')."
                 )
             }
             item {
                 InstructionItem(
-                    title = "3. Riwayat Tugas AI",
-                    description = "Tekan tombol ikon bintang (✨) mengambang di pojok kanan bawah untuk membuka panel riwayat. Di sana, Anda bisa melihat apa yang sedang dipikirkan AI, aksi apa yang dijalankannya (seperti klik atau mengetik), dan log sistem."
+                    title = "3. Membuat Aturan Aksi Terprogram",
+                    description = "Di dalam setiap profil, Anda dapat membuat aturan otomatis (Jika-Maka). Contoh: Jika kondisi prompt atau halaman mengandung 'nonaktif', maka jalankan aksi berupa JavaScript atau URL."
                 )
             }
             item {
                 InstructionItem(
-                    title = "4. Menghentikan AI",
-                    description = "Jika AI sedang berjalan, tombol kirim akan berubah menjadi tombol stop. Tekan tombol tersebut untuk menghentikan proses agen AI seketika."
+                    title = "4. Panel Interaksi Robot",
+                    description = "Tekan tombol ikon robot mengambang di pojok kanan bawah untuk membuka panel Robot AI. Di sana, Anda bisa melihat log sistem, memicu aksi otomatis via chat, dan mengelola aturan aksi dengan cepat."
                 )
             }
             item {
                 InstructionItem(
-                    title = "5. API Key",
-                    description = "Agar fitur agen otomatis ini berfungsi, pastikan GEMINI_API_KEY telah diatur di Environment Variables / Secrets."
+                    title = "5. Keamanan Eksekusi Robot",
+                    description = "Robot hanya akan bertindak dan mengeksekusi JavaScript jika kriteria kondisi terpenuhi berdasarkan profil aktif. Jika tidak ada aturan yang cocok, robot otomatis berhenti demi keamanan."
                 )
             }
         }

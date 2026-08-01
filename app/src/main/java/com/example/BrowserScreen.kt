@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Tab
 import androidx.compose.material3.*
@@ -218,7 +219,7 @@ fun BrowserScreen(viewModel: BrowserViewModel = viewModel(), navController: NavC
                             decorationBox = { innerTextField ->
                                 if (aiInput.isEmpty()) {
                                     Text(
-                                        text = "Add loop task...",
+                                        text = "Masukkan prompt robot (misal: 'kelola produk')...",
                                         style = TextStyle(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                             fontSize = 14.sp
@@ -446,56 +447,285 @@ fun WebViewContainer(
 fun AiAssistantSheetContent(viewModel: BrowserViewModel) {
     val chatHistory by viewModel.chatHistory.collectAsStateWithLifecycle()
     val isRunning by viewModel.isAgentRunning.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
+    val currentUrl by viewModel.currentUrl.collectAsStateWithLifecycle()
+    val profiles by viewModel.profiles.collectAsStateWithLifecycle()
+    
+    val activeProfile = profiles.find { 
+        it.urlMatch != "*" && currentUrl.contains(it.urlMatch, ignoreCase = true) 
+    } ?: profiles.find { it.urlMatch == "*" } ?: profiles.firstOrNull()
+
+    var selectedTabIndex by remember { mutableStateOf(0) }
+    val tabs = listOf("Chat Robot", "Kelola Aturan Aksi")
+    var sheetPromptInput by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .fillMaxHeight(0.8f) // take up 80% of screen height
-            .padding(16.dp)
+            .fillMaxHeight(0.9f)
+            .padding(top = 8.dp)
     ) {
-        Text(
-            text = "AI Task History",
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            reverseLayout = false
-        ) {
-            items(chatHistory) { msg ->
-                val (alignment, bgColor, textColor) = when (msg.role) {
-                    "user" -> Triple(Alignment.CenterEnd, MaterialTheme.colorScheme.primaryContainer, Color.Black)
-                    "ai" -> Triple(Alignment.CenterStart, MaterialTheme.colorScheme.secondaryContainer, Color.Black)
-                    else -> Triple(Alignment.Center, Color.Transparent, MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    contentAlignment = alignment
+        // Active Profile Role Banner
+        if (activeProfile != null) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (msg.role == "system") {
-                        Text(text = msg.text, style = MaterialTheme.typography.labelSmall, color = textColor)
-                    } else {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = bgColor,
-                            modifier = Modifier.widthIn(max = 280.dp)
+                    Icon(
+                        imageVector = Icons.Default.SmartToy,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Profil Robot: ${activeProfile.name}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = "Instruksi: ${activeProfile.customInstructions}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+
+        TabRow(selectedTabIndex = selectedTabIndex) {
+            tabs.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTabIndex == index,
+                    onClick = { selectedTabIndex = index },
+                    text = { Text(title, fontWeight = FontWeight.SemiBold) }
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (selectedTabIndex == 0) {
+            // Chat Tab
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    reverseLayout = false
+                ) {
+                    items(chatHistory) { msg ->
+                        val (alignment, bgColor, textColor) = when (msg.role) {
+                            "user" -> Triple(Alignment.CenterEnd, MaterialTheme.colorScheme.primaryContainer, Color.Black)
+                            "ai" -> Triple(Alignment.CenterStart, MaterialTheme.colorScheme.secondaryContainer, Color.Black)
+                            else -> Triple(Alignment.Center, Color.Transparent, MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            contentAlignment = alignment
                         ) {
-                            Text(
-                                text = msg.text,
-                                modifier = Modifier.padding(12.dp),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = textColor
-                            )
+                            if (msg.role == "system") {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.padding(horizontal = 8.dp)
+                                ) {
+                                    Text(
+                                        text = msg.text,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = textColor,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            } else {
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = bgColor,
+                                    modifier = Modifier.widthIn(max = 280.dp)
+                                ) {
+                                    Text(
+                                        text = msg.text,
+                                        modifier = Modifier.padding(12.dp),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = textColor
+                                    )
+                                }
+                            }
                         }
                     }
+                }
+
+                // Quick Prompt Shortcuts
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    AssistChip(
+                        onClick = { viewModel.submitAgentTask("kelola produk nonaktif") },
+                        label = { Text("⚡ Cek Nonaktif", fontSize = 12.sp) }
+                    )
+                    AssistChip(
+                        onClick = { viewModel.submitAgentTask("kriteria a") },
+                        label = { Text("⚡ Process Kriteria A", fontSize = 12.sp) }
+                    )
+                }
+
+                // Chat Input Row Inside Sheet
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = sheetPromptInput,
+                            onValueChange = { sheetPromptInput = it },
+                            placeholder = { Text("Ketik prompt instruksi robot...") },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            shape = RoundedCornerShape(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        if (isRunning) {
+                            IconButton(onClick = { viewModel.stopAgent() }) {
+                                Icon(Icons.Default.Stop, contentDescription = "Stop", tint = MaterialTheme.colorScheme.error)
+                            }
+                        } else {
+                            IconButton(
+                                onClick = {
+                                    if (sheetPromptInput.isNotBlank()) {
+                                        viewModel.submitAgentTask(sheetPromptInput)
+                                        sheetPromptInput = ""
+                                    }
+                                },
+                                enabled = sheetPromptInput.isNotBlank()
+                            ) {
+                                Icon(Icons.Default.Send, contentDescription = "Kirim", tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            // Action Management Tab
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+            ) {
+                if (activeProfile == null) {
+                    Text(
+                        text = "Belum ada profil robot khusus. Silakan buat profil baru di menu Profil AI Web.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                } else {
+                    Text(
+                        text = "Daftar Aturan Aksi Terprogram:",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    if (activeProfile.actions.isEmpty()) {
+                        Text(
+                            text = "Belum ada aksi yang didefinisikan untuk profil ini.\nJika tidak ada aksi yang cocok, robot akan berhenti bertindak secara aman.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        LazyColumn(modifier = Modifier.weight(1f)) {
+                            items(activeProfile.actions) { action ->
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(text = "Jika menemukan/prompt: ${action.condition}", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(text = "Maka eksekusi: ${action.action}", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                                        }
+                                        IconButton(onClick = { viewModel.removeActionFromProfile(activeProfile.id, action.id) }) {
+                                            Icon(androidx.compose.material.icons.Icons.Default.Close, contentDescription = "Hapus Aksi", tint = MaterialTheme.colorScheme.error)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HorizontalDivider()
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    var newCondition by remember { mutableStateOf("") }
+                    var newAction by remember { mutableStateOf("") }
+                    
+                    Text(text = "Tambah Kondisi & Aksi Baru:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    OutlinedTextField(
+                        value = newCondition,
+                        onValueChange = { newCondition = it },
+                        label = { Text("Kondisi (misal: 'nonaktif', 'kriteria a')") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    OutlinedTextField(
+                        value = newAction,
+                        onValueChange = { newAction = it },
+                        label = { Text("Aksi (JavaScript / Link URL)") },
+                        placeholder = { Text("document.querySelector('button').click();") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            if (newCondition.isNotBlank() && newAction.isNotBlank()) {
+                                viewModel.addActionToProfile(activeProfile.id, newCondition, newAction)
+                                newCondition = ""
+                                newAction = ""
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = newCondition.isNotBlank() && newAction.isNotBlank()
+                    ) {
+                        Text("Tambah Aksi ke Profil")
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }

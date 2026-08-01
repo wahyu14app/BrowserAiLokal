@@ -13,6 +13,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.ui.theme.MyApplicationTheme
 
+import androidx.lifecycle.viewmodel.compose.viewModel
+
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -24,15 +26,16 @@ class MainActivity : ComponentActivity() {
             color = MaterialTheme.colorScheme.background
         ) {
             val navController = rememberNavController()
+            val browserViewModel: BrowserViewModel = viewModel()
             NavHost(navController = navController, startDestination = "browser") {
                 composable("browser") {
-                    BrowserScreen(navController = navController)
+                    BrowserScreen(viewModel = browserViewModel, navController = navController)
                 }
                 composable("tools") {
                     ToolsScreen(navController = navController)
                 }
                 composable("ai_management") {
-                    AiManagementScreen(navController = navController)
+                    AiManagementScreen(viewModel = browserViewModel, navController = navController)
                 }
                 composable("profiles") {
                     ProfilesScreen(navController = navController)
