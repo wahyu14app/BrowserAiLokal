@@ -96,7 +96,7 @@ class BrowserViewModel : ViewModel() {
                 val simplifiedHtml = if (html.length > 50000) html.substring(0, 50000) + "...(terpotong)" else html
 
                 _chatHistory.update { it + ChatMessage("system", "Menganalisis halaman dan merencanakan tindakan...") }
-                val agentResponse = callGeminiAgent(task, simplifiedHtml)
+                val agentResponse = callLocalAgent(task, simplifiedHtml)
                 
                 if (agentResponse == null) {
                     _chatHistory.update { it + ChatMessage("system", "Gagal mendapatkan respons dari AI. Menghentikan tugas.") }
@@ -181,90 +181,15 @@ class BrowserViewModel : ViewModel() {
         val isDone: Boolean
     )
 
-    private suspend fun callGeminiAgent(task: String, html: String): AgentDecision? = withContext(Dispatchers.IO) {
-        val apiKey = BuildConfig.GEMINI_API_KEY
-        if (apiKey.isEmpty() || apiKey == "MY_GEMINI_API_KEY") {
-            _chatHistory.update { it + ChatMessage("system", "API Key tidak valid. Silakan atur di Secrets AI Studio.") }
+    private suspend fun callLocalAgent(task: String, html: String): AgentDecision? = withContext(Dispatchers.IO) {
+        val isLocalAiActive = false // TODO: Integrasi dengan model AI lokal (misal: MediaPipe LLM atau server lokal)
+
+        if (!isLocalAiActive) {
+            _chatHistory.update { it + ChatMessage("system", "AI belum di aktifkan. Harap bangun atau jalankan model AI lokal.") }
             return@withContext null
         }
 
-        val currentUrlValue = _currentUrl.value
-        val matchedProfile = _profiles.value.find { profile ->
-            currentUrlValue.contains(profile.urlMatch, ignoreCase = true)
-        }
-        val customInstructions = matchedProfile?.customInstructions ?: ""
-
-        val prompt = """
-            Anda adalah Agent Browser AI yang bertugas menjalankan perintah pengguna.
-            Tugas: "$task"
-            ${if (customInstructions.isNotBlank()) "\nInstruksi Khusus (Wajib Diikuti): $customInstructions\n" else ""}
-            Berikut adalah cuplikan HTML dari halaman saat ini:
-            ```html
-            $html
-            ```
-            
-            Tentukan tindakan selanjutnya. Anda harus merespons DALAM FORMAT JSON sesuai dengan skema yang diberikan.
-        """.trimIndent()
-
-        val schema = buildJsonObject {
-            put("type", "OBJECT")
-            putJsonObject("properties") {
-                putJsonObject("thought") {
-                    put("type", "STRING")
-                    put("description", "Pemikiran Anda tentang apa yang ada di halaman dan apa yang harus dilakukan selanjutnya (Bahasa Indonesia).")
-                }
-                putJsonObject("action") {
-                    put("type", "STRING")
-                    put("description", "Tindakan yang akan dilakukan: 'execute_js', 'navigate', atau 'none'.")
-                }
-                putJsonObject("javascript") {
-                    put("type", "STRING")
-                    put("description", "Kode JavaScript untuk dieksekusi jika action='execute_js'. Gunakan ini untuk klik tombol, isi form, dll.")
-                }
-                putJsonObject("url") {
-                    put("type", "STRING")
-                    put("description", "URL tujuan jika action='navigate'.")
-                }
-                putJsonObject("isDone") {
-                    put("type", "BOOLEAN")
-                    put("description", "True jika tugas sudah selesai, false jika belum.")
-                }
-            }
-        }
-
-        val request = GenerateContentRequest(
-            contents = listOf(
-                Content(
-                    role = "user",
-                    parts = listOf(Part(text = prompt))
-                )
-            ),
-            systemInstruction = Content(
-                parts = listOf(Part(text = "Anda adalah AI web automation agent. Analisis HTML, lalu hasilkan skrip untuk berinteraksi dengan DOM sesuai tugas."))
-            ),
-            generationConfig = GenerationConfig(
-                responseMimeType = "application/json",
-                responseSchema = schema,
-                temperature = 0.2f
-            )
-        )
-
-        try {
-            val response = RetrofitClient.service.generateContent(apiKey, request)
-            val jsonText = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
-            if (jsonText != null) {
-                val json = Json.parseToJsonElement(jsonText).jsonObject
-                return@withContext AgentDecision(
-                    thought = json["thought"]?.jsonPrimitive?.content ?: "",
-                    action = json["action"]?.jsonPrimitive?.content ?: "none",
-                    javascript = json["javascript"]?.jsonPrimitive?.content,
-                    url = json["url"]?.jsonPrimitive?.content,
-                    isDone = json["isDone"]?.jsonPrimitive?.booleanOrNull ?: false
-                )
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        // Placeholder untuk respons AI lokal di masa mendatang
         return@withContext null
     }
 }

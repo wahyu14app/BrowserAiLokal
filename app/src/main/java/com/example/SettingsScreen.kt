@@ -83,7 +83,7 @@ fun SettingsScreen(navController: NavController) {
             item {
                 ListItem(
                     headlineContent = { Text("Model AI Default") },
-                    supportingContent = { Text("Gemini Pro (Cloud)") },
+                    supportingContent = { Text("Lokal (MediaPipe/Llama.cpp)") },
                     modifier = Modifier.clickable { /* Show dialog */ }
                 )
             }
